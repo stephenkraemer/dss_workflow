@@ -68,7 +68,7 @@ print(f'Writing to {config["output_dir"]}')
 # ----------------
 dml_by_group1_group2_chrom = config['output_dir'] + '/dmls/per_chrom/dmls_{group1}_vs_{group2}_chrom-{chrom}.rds'
 dml_by_group1_group2 = config['output_dir'] + '/dmls/dmls_{group1}_vs_{group2}.rds'
-dmr_by_group1_group2 = config['output_dir'] + '/dmrs/dmrs_{group1}_vs_{group2}.rds'
+dmr_by_group1_group2 = config['output_dir'] + '/dmrs/dmrs_{group1}_vs_{group2}.bed'
 
 
 wildcard_constraints:

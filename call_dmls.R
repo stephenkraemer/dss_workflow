@@ -5,7 +5,10 @@
 #         group1_calls, group2_calls: list of absolute bed file paths
 #         group1_sample_ids, group2_sample_ids: list of sample IDs
 #     output:
-#         dml_df_rds: absolute file path
+#         dml_df_rds: absolute file path.
+#
+# Output:
+# RDS of DMLtest result. Contains columns chr and pos. For merged CpGs, pos is the 1-based start coordinate of the CpG. There is no end column.
 #
 # Notes:
 # - expected input file format
