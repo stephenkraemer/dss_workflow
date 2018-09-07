@@ -58,8 +58,8 @@ main <- function() {
                      group1 = group1_sample_ids,
                      group2 = group2_sample_ids,
                      equal.disp = FALSE,
-                     smoothing = TRUE,
-                     smoothing.span = 500)
+                     smoothing = snakemake@params[['dml_test_parameters']][['smooth']],
+                     smoothing.span = snakemake@params[['dml_test_parameters']][['smooth_span']])
 
     print("Saving RDS")
     saveRDS(dml_df, output_fp)

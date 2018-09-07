@@ -1,0 +1,53 @@
+# Example config for DMR calling workflow
+
+# Always required
+# ======================================================================
+
+output_dir: "/icgc/dkfzlsdf/analysis/hs_ontogeny/results/wgbs/cohort_results/pairwise-dmr-calls/DSS/parameter-selection/v1_bistro-0.2.0_odcf-alignment/p_values"
+metadata_table: "/icgc/dkfzlsdf/analysis/hs_ontogeny/results/wgbs/metadata/meth_calling/v1_bistro-0.2.0_odcf-alignment_dataset-table.tsv"
+
+# take care to specify the chromosomes in the desired sorting order (alphabetical or numerical). The specified order will be used throughout the workflow
+chromosomes: ['1']
+
+group_column: "subject"
+sample_id_column: "sample_id"
+bed_by_chrom_column: "bed_by_chrom_path"
+comparisons: [
+    ["hsc", "b-cells"],
+    ["hsc", "cfu-e"],
+    ["hsc", "clp"],
+    ["hsc", "cmop"],
+    ["hsc", "cmp-cd55-minus"],
+    ["hsc", "cmp-cd55-plus"],
+    ["hsc", "dc-cd8a"],
+    ["hsc", "eosinos"],
+    ["hsc", "gmp"],
+    ["hsc", "mep"],
+    ["hsc", "mkp"],
+    ["hsc", "mpp1"],
+    ["hsc", "mpp2"],
+    ["hsc", "mpp3"],
+    ["hsc", "mpp4"],
+    ["hsc", "mpp5"],
+    ["hsc", "neutros"],
+    ["hsc", "premege"],
+    ["hsc", "t-cells"]
+]
+
+# exponential notation requires explicit floats (1.0) due to bug in pyyaml
+parameters: [
+    {"pvalue": 0.05,   "delta": 0.1, "minlen": 50, "minCG": 3, "merge_dist": 50, "pct_sign": 0.5, "smooth": false, "smooth_span": 500},
+    {"pvalue": 0.01,   "delta": 0.1, "minlen": 50, "minCG": 3, "merge_dist": 50, "pct_sign": 0.5, "smooth": false, "smooth_span": 500},
+    {"pvalue": 0.001,  "delta": 0.1, "minlen": 50, "minCG": 3, "merge_dist": 50, "pct_sign": 0.5, "smooth": false, "smooth_span": 500},
+    {"pvalue": 0.0001, "delta": 0.1, "minlen": 50, "minCG": 3, "merge_dist": 50, "pct_sign": 0.5, "smooth": false, "smooth_span": 500},
+    {"pvalue": 1.0e-5,   "delta": 0.1, "minlen": 50, "minCG": 3, "merge_dist": 50, "pct_sign": 0.5, "smooth": false, "smooth_span": 500},
+    {"pvalue": 1.0e-6,   "delta": 0.1, "minlen": 50, "minCG": 3, "merge_dist": 50, "pct_sign": 0.5, "smooth": false, "smooth_span": 500},
+    {"pvalue": 1.0e-7,   "delta": 0.1, "minlen": 50, "minCG": 3, "merge_dist": 50, "pct_sign": 0.5, "smooth": false, "smooth_span": 500}
+]
+
+# Optional output and additional parameters required for the optional output
+# ==========================================================================
+create_dmr_coverage_bedgraph: false
+# only required if create_dmr_coverage_bedgraph = False
+cpg_index_file: '/path/to/cpg/index/file'
+
