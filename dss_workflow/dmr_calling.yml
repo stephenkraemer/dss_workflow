@@ -1,4 +1,8 @@
-name: dmr_calling
+name: dss_workflow
+channels:
+  - defaults
+  - bioconda
+  - conda-forge
 dependencies:
   - r-base=3.4.1
   - r-feather
@@ -8,7 +12,6 @@ dependencies:
   - bioconductor-dss
   - bioconductor-bsseq
   - bioconductor-rtracklayer
-  - python=3.6
-  - pandas=0.23
-  - ipython
+  - python=3.7
+  - pandas=0.23.4
   - snakemake

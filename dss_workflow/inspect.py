@@ -1,9 +1,14 @@
+from pkg_resources import resource_filename
 from itertools import product
 
 import pandas as pd
 from typing import Dict, List, Any
 
-from dmr_calling.utils import subset_dict, dict_to_compact_str
+from dss_workflow.utils import subset_dict, dict_to_compact_str
+
+
+def get_snakefile_path() -> str:
+    return resource_filename('dss_workflow', 'dmr-calling.snakefile')
 
 
 def create_dmr_metadata_table(config: Dict[str, Any]) -> pd.DataFrame:

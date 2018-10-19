@@ -1,12 +1,12 @@
 from setuptools import setup
 
 setup(
-        name='dmr_calling',
+        name='dss_workflow',
         version='0.1',
         author='Stephen Kraemer',
         author_email='stephenkraemer@gmail.com',
         license='MIT',
-        packages=['dmr_calling'],
+        packages=['dss_workflow'],
         install_requires=[
             'pandas',
         ],
