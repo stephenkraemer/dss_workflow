@@ -1,0 +1,16 @@
+name: dss_workflow
+channels:
+  - defaults
+  - bioconda
+  - conda-forge
+dependencies:
+  - r-base=3.4.1
+  - r-stringr
+  - r-readr
+  - r-purrr
+  - bioconductor-dss=2.26.0
+  # 1.16.1 checks for interval widths == 1
+  # https://github.com/hansenlab/bsseq/issues/68
+  - bioconductor-bsseq=1.14.0
+  - bioconductor-rtracklayer=1.40.6
+  - bedtools=2.27.1

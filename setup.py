@@ -7,8 +7,11 @@ setup(
         author_email='stephenkraemer@gmail.com',
         license='MIT',
         packages=['dss_workflow'],
+        package_data={
+            '': ['*.R', '*.snakefile', '*.yml', '*.sh'],
+        },
         install_requires=[
-            'pandas',
+            'pandas>=0.23',
         ],
         python_requires='>=3.6',
 )

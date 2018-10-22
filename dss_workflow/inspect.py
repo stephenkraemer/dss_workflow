@@ -8,7 +8,7 @@ from dss_workflow.utils import subset_dict, dict_to_compact_str
 
 
 def get_snakefile_path() -> str:
-    return resource_filename('dss_workflow', 'dmr-calling.snakefile')
+    return resource_filename('dss_workflow', 'dss_workflow.snakefile')
 
 
 def create_dmr_metadata_table(config: Dict[str, Any]) -> pd.DataFrame:

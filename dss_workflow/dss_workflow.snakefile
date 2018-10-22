@@ -9,11 +9,13 @@ Example call:
     --latency-wait 180 \
     --jobscript /home/kraemers/projects/dmr_calling/local/jobscript.sh \
     --cluster "bsub -R rusage[mem={{params.avg_mem}}] -M {{params.max_mem}} -n {{threads}} -J {{params.name}} -W {{params.walltime}} -o /home/kraemers/temp/logs/" \
+    --conda-prefix /icgc/dkfzlsdf/analysis/hs_ontogeny/envs/snakemake-managed \
+    --use-conda \
 
 """
 
 import pandas as pd
-from mouse_hematopoiesis.utils.itertools import subset_dict, dict_to_compact_str
+from dss_workflow.utils import subset_dict, dict_to_compact_str
 from itertools import product
 
 # Command line args handling
@@ -86,6 +88,7 @@ rule call_dmls:
         max_mem = 6000,
         name = "{group1}_vs_{group2}_chr{chrom}",
     threads: 1
+    conda: 'dss_workflow.yml'
     output:
         dml_by_group1_group2_params_chrom,
     script:
@@ -105,6 +108,7 @@ rule collect_dml_calls:
         max_mem = 10000,
         name = "merge-dml_{group1}_vs_{group2}",
     threads: 1
+    conda: 'dss_workflow.yml'
     output:
         dml_by_group1_group2_params,
     script:
@@ -120,7 +124,9 @@ rule call_dmrs:
         max_mem = 8000,
         name = "dmr-calling_{group1}_vs_{group2}",
         dmr_test_parameters = lambda wildcards: dmr_params_name_to_params_dict[wildcards.dmr_params],
+        chromosomes = config['chromosomes'],
     threads: 1
+    conda: 'dss_workflow.yml'
     output:
         dmr_by_group1_group2_params,
     script:
@@ -137,6 +143,8 @@ rule coverage_bedgraph:
         avg_mem = 3000,
         max_mem = 7000,
         name = "dmr-coverage_{group1}_vs_{group2}",
+    threads: 1
+    conda: 'dss_workflow.yml'
     shell:
         """
         echo '#chr\tstart\tend\tis_in_dmr' > {output}

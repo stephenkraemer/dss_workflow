@@ -25,11 +25,12 @@ print(snakemake)
 dml_df = readRDS(snakemake@input[[1]])
 
 # R won't throw error for missing list elements
+print('Testing that all DSS parameters are there')
 expected_parameters = c('pvalue', 'delta', 'minlen', 'minCG', 'merge_dist', 'pct_sign')
 dmr_test_parameters = snakemake@params[['dmr_test_parameters']]
-
 stopifnot(all(sapply(expected_parameters, function(x) x %in% names(dmr_test_parameters))))
 
+print('Calling DMRs')
 dmrs = callDMR(dml_df,
                p.threshold = dmr_test_parameters[['pvalue']],
                delta = dmr_test_parameters[['delta']],
@@ -40,6 +41,7 @@ dmrs = callDMR(dml_df,
                )
 
 if (is.null(dmrs)) {
+    print('No DMRs found, creating empty dataframe')
     # get header - retrieve programatically in case the DSS columns change
     # create dataframe instead of just writing out header to BED
     # in case I need an rds/feather/... later
@@ -48,8 +50,10 @@ if (is.null(dmrs)) {
     dmrs = data.frame(matrix(nrow=0, ncol=ncol(pseudo_dmrs)))
     colnames(dmrs) = colnames(pseudo_dmrs)
 } else {
+    print('Sorting DMRs')
     dmrs = dmrs[order(dmrs[[1]], dmrs[[2]], dmrs[[3]]), ]
 
+    print('Assert chromosome order')
     # assert that sorting order is as defined for workflow
     existing_chromosomes_in_original_order = keep(snakemake@params[['chromosomes']], function(x) x %in% unique(dmrs[[1]]))
     stopifnot(all(unique(dmrs[[1]]) == existing_chromosomes_in_original_order))
@@ -69,6 +73,7 @@ if (is.null(dmrs)) {
     # DSS takes the distance between the start of the first and last CpG in the DMR.
     # We want to take the distance between the start of the first CpG and the *end* of the last CpG.
 
+    print('Convert to BED')
     dmrs['start'] = dmrs['start'] - 1
     dmrs['end'] = dmrs['end'] + 1
     dmrs['length'] = dmrs['end'] - dmrs['start']
