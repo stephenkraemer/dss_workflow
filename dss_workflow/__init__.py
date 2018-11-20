@@ -1,1 +1,1 @@
-from .inspect import create_dmr_metadata_table, get_snakefile_path
+from dss_workflow.utils import get_snakefile_path, create_dmr_metadata_table
