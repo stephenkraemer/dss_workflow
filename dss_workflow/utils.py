@@ -38,6 +38,14 @@ def dict_to_compact_str(d: Dict[str, Any]) -> str:
 def get_snakefile_path() -> str:
     return resource_filename('dss_workflow', 'dss_workflow.snakefile')
 
+def get_jobscript_path() -> str:
+    return resource_filename('dss_workflow', 'lsf-jobscript.sh')
+
+def get_statusscript_path() -> str:
+    return resource_filename('dss_workflow', 'lsf-status.py')
+
+def get_submitscript_path() -> str:
+    return resource_filename('dss_workflow', 'lsf-submit.py')
 
 def create_dmr_metadata_table(config: Dict[str, Any]) -> pd.DataFrame:
     """Use information in DMR calling workflow config dict to create a metadata table

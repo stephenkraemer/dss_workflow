@@ -83,10 +83,10 @@ rule call_dmls:
         group1_sample_ids = lambda wildcards: metadata_table.loc[wildcards.group1, 'sample_id'].tolist(),
         group2_sample_ids = lambda wildcards: metadata_table.loc[wildcards.group2, 'sample_id'].tolist(),
         dml_test_parameters = lambda wildcards: dml_params_name_to_params_dict[wildcards.dml_params],
-        walltime = "03:00",
-        avg_mem = 4000,
-        max_mem = 6000,
         name = "{group1}_vs_{group2}_chr{chrom}",
+    resources:
+        mem_mb = lambda wildcards, attempt: 6000 * attempt,
+        walltime_min = lambda wildcards, attempt: 180 * attempt,
     threads: 1
     conda: 'dss_workflow.yml'
     output:
@@ -103,10 +103,10 @@ rule collect_dml_calls:
                                  dml_params=wildcards.dml_params,
                                  chrom=config['chromosomes'])
     params:
-        walltime = "00:15",
-        avg_mem = 6000,
-        max_mem = 10000,
         name = "merge-dml_{group1}_vs_{group2}",
+    resources:
+        walltime_min = lambda wildcards, attempt: 15 * attempt,
+        mem_mb = 10000,
     threads: 1
     conda: 'dss_workflow.yml'
     output:
@@ -119,12 +119,12 @@ rule call_dmrs:
     input:
         dml_by_group1_group2_params,
     params:
-        walltime = "00:15",
-        avg_mem = 4000,
-        max_mem = 8000,
         name = "dmr-calling_{group1}_vs_{group2}",
         dmr_test_parameters = lambda wildcards: dmr_params_name_to_params_dict[wildcards.dmr_params],
         chromosomes = config['chromosomes'],
+    resources:
+        walltime_min = lambda wildcards, attempt: 15 * attempt,
+        mem_mb = 8000,
     threads: 1
     conda: 'dss_workflow.yml'
     output:
@@ -139,10 +139,10 @@ rule coverage_bedgraph:
     output:
         dmr_coverage_bedgraph_by_group1_group2_params,
     params:
-        walltime = "00:10",
-        avg_mem = 3000,
-        max_mem = 7000,
         name = "dmr-coverage_{group1}_vs_{group2}",
+    resources:
+        walltime_min = lambda wildcards, attempt: 10 * attempt,
+        mem_mb = 7000,
     threads: 1
     conda: 'dss_workflow.yml'
     shell:
