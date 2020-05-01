@@ -14,6 +14,7 @@ Example call:
 
 """
 
+import re
 import pandas as pd
 from dss_workflow.utils import subset_dict, dict_to_compact_str
 from itertools import product
@@ -25,7 +26,7 @@ metadata_table = pd.read_csv(config['metadata_table'], sep='\t', header=0)
 required_cols = (subset_dict(config, ['group_column', 'sample_id_column', 'bed_by_chrom_column']).values())
 assert all([s in metadata_table.columns for s in required_cols])
 metadata_table = metadata_table.set_index([config['group_column'], config['sample_id_column']], drop=False)
-print(f'Reading metadata table, with head:\n{metadata_table.head()}')
+# print(f'Reading metadata table, with head:\n{metadata_table.head()}')
 assert metadata_table[config['bed_by_chrom_column']].str.contains('{chrom}').all()
 
 assert len(config['comparisons'][0]) == 2
@@ -45,6 +46,7 @@ dmr_by_group1_group2_params = config['output_dir'] + '/{dml_params}/dmrs/{dmr_pa
 dml_params_name_to_params_dict = {}
 dmr_params_name_to_params_dict = {}
 dmr_calls = []
+dml_parquet_calls = []
 dmr_coverage_bedgraphs = []
 for group_tuple, parameters in product(config['comparisons'], config['parameters']):
     dml_params = subset_dict(parameters, ['smooth', 'smooth_span'])
@@ -61,7 +63,9 @@ for group_tuple, parameters in product(config['comparisons'], config['parameters
     dmr_coverage_bedgraphs.append(dmr_coverage_bedgraph_by_group1_group2_params.format(
         group1=group_tuple[0], group2=group_tuple[1],
         dml_params=dml_params_str, dmr_params=dmr_params_str))
-print(dmr_calls)
+    dml_parquet_calls.append(re.sub('.rds$', '.parquet', dml_by_group1_group2_params).format(
+            group1=group_tuple[0], group2=group_tuple[1], dml_params=dml_params_str
+    ))
 
 wildcard_constraints:
     chrom = "\d{1,2}"
@@ -72,7 +76,9 @@ if config['create_dmr_coverage_bedgraph']:
 
 rule all:
     input:
-        targets
+        targets,
+        # parquet output is not yet possible, see comments on the corresponding rule
+        # dml_parquet_calls,
 
 
 rule call_dmls:
@@ -113,6 +119,27 @@ rule collect_dml_calls:
         dml_by_group1_group2_params,
     script:
         "concat_dml_chrom_dfs.R"
+
+
+# this rule and the corresponding script have not yet been tested or executed in production
+# r-arrow is not compatible with the fixed DSS and bsseq versions
+# before activating this, the workflow needs to be tested with more recent DSS and bsseq versions
+# there was at least one bug preventing upgrading the bsseq version in the past:
+# https://github.com/hansenlab/bsseq/issues/68
+rule dml_calls_to_parquet:
+    input:
+        dml_by_group1_group2_params,
+    output:
+        re.sub('.rds$', '.parquet', dml_by_group1_group2_params),
+    params:
+        name = 'dml-to-parquet_{group1}_vs_{group2}'
+    resources:
+        walltime_min = 5,
+        mem_mb = 6000,
+    threads: 1
+    conda: 'dss_workflow.yml'
+    script:
+        "dml_to_parquet.R"
 
 
 rule call_dmrs:
