@@ -9,9 +9,11 @@ setup(
         packages=['dss_workflow'],
         package_data={
             '': ['*.R', '*.snakefile', '*.yml', '*.sh'],
+            'dss_workflow': 'py.typed',
         },
         install_requires=[
             'pandas>=0.23',
         ],
         python_requires='>=3.6',
+        zip_safe=False,  # https://github.com/python/mypy/issues/8802
 )
