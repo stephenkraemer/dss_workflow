@@ -1,6 +1,6 @@
-import re
+import attr
 from itertools import product
-from typing import Dict, Union, Hashable, Sequence, Any, List
+from typing import Dict, Union, Hashable, Sequence, Any, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -151,39 +151,12 @@ def create_dmr_metadata_table(config: Dict[str, Any]) -> pd.DataFrame:
     return metadata_table
 
 
-def get_dml_test_dfs_d(dml_test_files, query_cpgs, n_jobs=1) -> Dict:
-    """
-
-    Parameters
-    ----------
-    dml_test_files
-        parquet files of DSS DML result
-    query_cpgs
-        CpGs for which the pvalues should be retrieved
-    n_jobs
-
-    Returns
-    -------
-    dict
-        keys: p_value, q_value, p_value_posterior (for delta > 0.1), mean, se
-
-    """
-
-    dmr_cpg_test_results_d = concat_dml_stats(
-        dml_test_files=dml_test_files, cpg_query_df=query_cpgs, n_jobs=n_jobs
-    )
-
-    dmr_cpg_test_results_d["p_value_posterior"] = dss_posterior_probability(
-        delta_df=dmr_cpg_test_results_d["delta"],
-        se_df=dmr_cpg_test_results_d["se"],
-        min_delta=0.1,
-    )
-
-
 from scipy.stats import norm
 
 
-def dss_posterior_probability(delta_df, se_df, min_delta: float):
+def dss_posterior_probability(
+    delta_df: pd.DataFrame, se_df: pd.DataFrame, min_delta: float
+) -> pd.DataFrame:
     # https://github.com/haowulab/DSS/blob/911b1bd091a6a0e39b66284c23e8a972ac716961/R/DML.R
     # - DML calling is either based on the p-values (if no delta is specified)
     # or on the posterior p-values.
@@ -193,12 +166,23 @@ def dss_posterior_probability(delta_df, se_df, min_delta: float):
     return pd.DataFrame(1 - (p1 + p2), index=delta_df.index, columns=delta_df.columns)
 
 
-def concat_dml_stats(
-    dml_test_files: Dict[str, str], cpg_query_df: pd.DataFrame, n_jobs=1
-) -> Dict[str, pd.DataFrame]:
-    """Concatenate DML test statistics and p-values on query cpgs
+@attr.s(auto_attribs=True)
+class DmlTestStats:
+    p_values: pd.DataFrame
+    deltas: pd.DataFrame
+    ses: pd.DataFrame
+    dss_q_values: Optional[pd.DataFrame]
 
-    Collects p-values, q-values, delta, se into individual cpg x pop dataframes
+
+def concat_dml_stats(
+    dml_test_files: Dict[str, str],
+    cpg_query_df: pd.DataFrame,
+    collect_qvalues: bool,
+    n_jobs: int = 1,
+) -> DmlTestStats:
+    """Concatenate DML test statistics for query cpgs
+
+    Collects p-values, q-values (optional), delta, se into individual cpg x pop dataframes
 
     Parameters
     ----------
@@ -210,11 +194,16 @@ def concat_dml_stats(
         Chromosome must be category, the chromosome dtype is used in the function
     n_jobs
         parallelize over dml_test files
+    collect_qvalues
+        If False, the q-value is not collected. In situations where dmlTest is parallelized across
+        chromosomes, the MHT correction is also done separately per job. Safer to re-calculate the q-value yourself.
+        Note that this requires retrieving all CpGs, so that correction can be done across all
+        performed tests.
 
     Returns
     -------
     Dict
-        dict with dataframes (cpg, pop), keys: ["p_value", "q_value", "delta", "se"]
+        dict with dataframes (cpg, pop), keys: ["p_value", "q_value" (optional), "delta", "se"]
     """
 
     # Implementation notes
@@ -228,19 +217,31 @@ def concat_dml_stats(
 
     # Extract test results for the query CpGs
     # get a list with one dataframe per pop, query cpgs x [p_value q_value delta]
-    dml_stats_per_pop_l = Parallel(n_jobs, backend="multiprocessing", max_nbytes=None)(
+    dml_stats_per_pop_l: List[pd.DataFrame] = Parallel(
+        n_jobs, backend="multiprocessing", max_nbytes=None
+    )(
         delayed(_get_single_test_stat_df)(dml_test_file, cpg_query_df)
         for name, dml_test_file in dml_test_files.items()
     )
 
     # get individual dfs (cpg, pop) for p_value, q_value, delta
     # use dml_test_files.keys() as pop column names
-    return {
+    res: Dict[str, pd.DataFrame] = {
         k: pd.concat(
             [df[k] for df in dml_stats_per_pop_l], axis=1, keys=dml_test_files.keys()
         ).reset_index(drop=True)
         for k in ["p_value", "q_value", "delta", "se"]
     }
+
+    if not collect_qvalues:
+        del res["q_value"]
+
+    return DmlTestStats(
+        p_values=res["p_value"],
+        deltas=res["delta"],
+        ses=res["se"],
+        dss_q_values=res.get("q_value", None),
+    )
 
 
 def _get_single_test_stat_df(
@@ -259,10 +260,12 @@ def _get_single_test_stat_df(
     query_cpg_gr = pr.PyRanges(query_cpg_df)
 
     # DF: chr pos mu1 mu2 diff diff.se stat phi1 phi2 pval fdr
+    dml_test_df = pd.read_parquet(
+        dml_test_file, columns=["chr", "pos", "diff", "pval", "fdr", "diff.se"]
+    )
+    assert isinstance(dml_test_df, pd.DataFrame)
     dml_test_df = (
-        pd.read_parquet(
-            dml_test_file, columns=["chr", "pos", "diff", "pval", "fdr", "diff.se"]
-        ).rename(
+        dml_test_df.rename(
             columns={
                 "chr": "Chromosome",
                 "pos": "Start",
@@ -285,10 +288,9 @@ def _get_single_test_stat_df(
     # join query cpg GR and dml test GR
     # sort result according to correct chrom dtype
     reindexed_dml_test_gr = query_cpg_gr.join(dml_test_gr, how="left")
+    _df: pd.DataFrame = reindexed_dml_test_gr.df
     reindexed_dml_test_df = (
-        reindexed_dml_test_gr.df.assign(
-            Chromosome=lambda df: df.Chromosome.astype(chrom_dtype)
-        )
+        _df.assign(Chromosome=lambda df: df.Chromosome.astype(chrom_dtype))
         .sort_values(["Chromosome", "Start", "End"])
         .reset_index(drop=True)
     )
@@ -304,6 +306,11 @@ def _get_single_test_stat_df(
     # currently, join uses -1 instead of NA for unmatched rows
     # find them, replace with NA
     matched_rows = ~reindexed_dml_test_df.Start_b.eq(-1)
+    # defensive check so that we pick up on changes in pyranges (NA for unmatched rows
+    # will be implemented in the future)
+    assert (
+        reindexed_dml_test_df.Start_b.notnull().all()
+    ), "Code needs to be adapted to changes in pr.PyRanges.join (NA instead of -1 for unmatched rows"
     # noinspection PyUnresolvedReferences
     assert (
         reindexed_dml_test_df.loc[matched_rows, ["Start", "End"]].to_numpy()
@@ -319,4 +326,3 @@ def _get_single_test_stat_df(
     ]
 
     return dmr_cpg_dml_test_results
-

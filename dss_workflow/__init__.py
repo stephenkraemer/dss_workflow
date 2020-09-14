@@ -5,5 +5,6 @@ from dss_workflow.utils import (
     get_submitscript_path,
     create_dmr_metadata_table,
     concat_dml_stats,
-    dss_posterior_probability
+    dss_posterior_probability,
+    DmlTestStats,
 )
