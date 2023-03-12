@@ -9,7 +9,7 @@ setup(
         packages=['dss_workflow'],
         package_data={
             '': ['*.R', '*.snakefile', '*.yml', '*.sh'],
-            'dss_workflow': 'py.typed',
+            'dss_workflow': ['py.typed'],
         },
         install_requires=[
             'pandas>=0.23',
